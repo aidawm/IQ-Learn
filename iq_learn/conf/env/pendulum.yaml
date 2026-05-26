@@ -1,0 +1,18 @@
+# @package _global_
+# Pendulum-v1 config for IQ-Learn
+
+env:
+  name: Pendulum-v1
+  demo: Pendulum-v1_K20
+  learn_steps: 3e5
+  eval_interval: 3e3
+  eps_steps: 200
+  replay_mem: 50000
+  initial_mem: 1000
+
+expert:
+  demos: 20
+  subsample_freq: 1
+
+eval:
+  threshold: -300

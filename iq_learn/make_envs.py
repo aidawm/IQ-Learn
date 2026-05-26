@@ -1,6 +1,5 @@
-import gym
-from stable_baselines3.common.atari_wrappers import AtariWrapper
-from stable_baselines3.common.monitor import Monitor
+import gymnasium as gym
+from gymnasium.wrappers import RecordEpisodeStatistics
 
 from wrappers.atari_wrapper import ScaledFloatFrame, FrameStack, FrameStackEager, PyTorchFrame
 from wrappers.normalize_action_wrapper import check_and_normalize_box_actions
@@ -59,6 +58,7 @@ def make_dcm(cfg):
     return env
 
 def make_atari(env):
+    from stable_baselines3.common.atari_wrappers import AtariWrapper
     env = AtariWrapper(env)
     env = PyTorchFrame(env)
     env = FrameStack(env, 4)
@@ -80,7 +80,7 @@ def make_env(args, monitor=True):
         env = gym.make(args.env.name)
     
     if monitor:
-        env = Monitor(env, "gym")
+        env = RecordEpisodeStatistics(env)
 
     if is_atari(args.env.name):
         env = make_atari(env)

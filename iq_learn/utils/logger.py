@@ -6,7 +6,6 @@ import shutil
 import torch
 import torchvision
 import numpy as np
-from torch.utils.tensorboard import SummaryWriter
 from termcolor import colored
 
 COMMON_TRAIN_FORMAT = [
@@ -132,6 +131,7 @@ class Logger(object):
             self._sw = writer
         else:
             if save_tb:
+                from torch.utils.tensorboard import SummaryWriter
                 tb_dir = os.path.join(log_dir, 'tb')
                 if os.path.exists(tb_dir):
                     try:

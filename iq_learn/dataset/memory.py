@@ -38,9 +38,12 @@ class Memory(object):
         np.save(path, b)
 
     def load(self, path, num_trajs, sample_freq, seed):
-        # If path has no extension add npy
-        if not path.endswith("pkl"):
-            path += '.npy'
+        import os
+        if not os.path.isfile(path):
+            if os.path.isfile(path + '.pkl'):
+                path += '.pkl'
+            else:
+                path += '.npy'
         data = ExpertDataset(path, num_trajs, sample_freq, seed)
         # data = np.load(path, allow_pickle=True)
         for i in range(len(data)):

@@ -16,7 +16,6 @@ import hydra
 import numpy as np
 import torch
 import torch.nn.functional as F
-import wandb
 from omegaconf import DictConfig, OmegaConf
 from tensorboardX import SummaryWriter
 
@@ -41,8 +40,6 @@ def get_args(cfg: DictConfig):
 @hydra.main(config_path="conf", config_name="config")
 def main(cfg: DictConfig):
     args = get_args(cfg)
-    wandb.init(project=args.project_name, entity='iq-learn',
-               sync_tensorboard=True, reinit=True, config=args)
 
     # set seeds
     random.seed(args.seed)
@@ -59,8 +56,8 @@ def main(cfg: DictConfig):
     eval_env = make_env(args)
 
     # Seed envs
-    env.seed(args.seed)
-    eval_env.seed(args.seed + 10)
+    # env.seed handled via reset(seed=...)
+    # eval_env.seed handled via reset(seed=...)
 
     REPLAY_MEMORY = int(env_args.replay_mem)
     INITIAL_MEMORY = int(env_args.initial_mem)
@@ -112,13 +109,13 @@ def main(cfg: DictConfig):
     episode_reward = 0
 
     # Sample initial states from env
-    state_0 = [env.reset()] * INITIAL_STATES
+    state_0 = [env.reset(seed=args.seed + i)[0] for i in range(INITIAL_STATES)]
     if isinstance(state_0[0], LazyFrames):
         state_0 = np.array(state_0) / 255.0
     state_0 = torch.FloatTensor(np.array(state_0)).to(args.device)
 
     for epoch in count():
-        state = env.reset()
+        state, _ = env.reset()
         episode_reward = 0
         done = False
 
@@ -131,7 +128,8 @@ def main(cfg: DictConfig):
             else:
                 with eval_mode(agent):
                     action = agent.choose_action(state, sample=True)
-            next_state, reward, done, _ = env.step(action)
+            next_state, reward, terminated, truncated, _ = env.step(action)
+            done = terminated or truncated
             episode_reward += reward
             steps += 1
 
@@ -142,12 +140,10 @@ def main(cfg: DictConfig):
                 logger.log('eval/episode_reward', returns, learn_steps)
                 logger.log('eval/episode', epoch, learn_steps)
                 logger.dump(learn_steps, ty='eval')
-                # print('EVAL\tEp {}\tAverage reward: {:.2f}\t'.format(epoch, returns))
 
                 if returns > best_eval_returns:
-                    # Store best eval returns
                     best_eval_returns = returns
-                    wandb.run.summary["best_returns"] = best_eval_returns
+                    print(f'New best eval return: {best_eval_returns:.2f}')
                     save(agent, epoch, args, output_dir='results_best')
 
             # only store done true when episode finishes without hitting timelimit (allow infinite bootstrap)
@@ -165,7 +161,6 @@ def main(cfg: DictConfig):
                 learn_steps += 1
                 if learn_steps == LEARN_STEPS:
                     print('Finished!')
-                    wandb.finish()
                     return
 
                 ######
@@ -189,7 +184,6 @@ def main(cfg: DictConfig):
         logger.log('train/episode_reward', episode_reward, learn_steps)
         logger.log('train/duration', time.time() - start_time, learn_steps)
         logger.dump(learn_steps, save=begin_learn)
-        # print('TRAIN\tEp {}\tAverage reward: {:.2f}\t'.format(epoch, np.mean(rewards_window)))
         save(agent, epoch, args, output_dir='results')
 
 

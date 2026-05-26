@@ -22,13 +22,16 @@ class SAC(object):
         self.actor_update_frequency = agent_cfg.actor_update_frequency
         self.critic_target_update_frequency = agent_cfg.critic_target_update_frequency
 
-        self.critic = hydra.utils.instantiate(agent_cfg.critic_cfg, args=args).to(self.device)
+        from agent.sac_models import DoubleQCritic, DiagGaussianActor
+        q_cfg = args.q_net
+        self.critic = DoubleQCritic(obs_dim, action_dim, q_cfg.hidden_dim, q_cfg.hidden_depth, args).to(self.device)
 
-        self.critic_target = hydra.utils.instantiate(agent_cfg.critic_cfg, args=args).to(
+        self.critic_target = DoubleQCritic(obs_dim, action_dim, q_cfg.hidden_dim, q_cfg.hidden_depth, args).to(
             self.device)
         self.critic_target.load_state_dict(self.critic.state_dict())
 
-        self.actor = hydra.utils.instantiate(agent_cfg.actor_cfg).to(self.device)
+        a_cfg = args.diag_gaussian_actor
+        self.actor = DiagGaussianActor(obs_dim, action_dim, a_cfg.hidden_dim, a_cfg.hidden_depth, a_cfg.log_std_bounds).to(self.device)
 
         self.log_alpha = torch.tensor(np.log(agent_cfg.init_temp)).to(self.device)
         self.log_alpha.requires_grad = True
