@@ -1,14 +1,38 @@
-gym[box2d]==0.17.1
-hydra-core==1.0.6
-stable_baselines3==1.0
-tensorboard==2.4.0
-tensorboardX==2.1
-torch==1.7.1
-torchvision==0.8.2
-tornado==5.1.1
-tqdm==4.42.1
-wandb
-opencv-python==4.5.1.48
-atari-py==0.2.6
-gym_minigrid==1.0.2
-#mujoco_py==2.0.2
+# Core RL / training
+--extra-index-url https://download.pytorch.org/whl/cu118
+torch==2.3.1+cu118
+torchvision==0.18.1+cu118
+torchaudio==2.3.1+cu118
+
+# Gym environments
+gym==0.26.2
+gymnasium==1.2.3
+
+# Stable Baselines 3
+stable_baselines3==2.8.0
+
+# Config
+hydra-core==1.1.2
+omegaconf==2.1.2
+
+# Logging & monitoring
+tensorboard==2.14.1
+tensorboardX==2.6.5
+wandb  # not installed in current env — pin if needed
+
+# Numerics / visualization
+numpy==1.26.4
+scipy==1.15.3
+matplotlib==3.10.8
+seaborn==0.13.2
+opencv-python==4.11.0.86
+
+# Utilities
+tqdm==4.67.1
+termcolor==3.3.0
+tornado==6.5.4
+
+# Optional / environment-specific (install manually if needed)
+# atari-py==0.2.6        # Atari environments
+# gym_minigrid==1.0.2    # MiniGrid environments
+# mujoco_py==2.0.2       # MuJoCo environments (requires MuJoCo license)
