@@ -4,8 +4,8 @@
 env:
   name: Pendulum-v1
   demo: Pendulum-v1_K20
-  learn_steps: 3e5
-  eval_interval: 3e3
+  learn_steps: 5e4
+  eval_interval: 2e3
   eps_steps: 200
   replay_mem: 50000
   initial_mem: 1000
