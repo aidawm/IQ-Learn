@@ -3,87 +3,92 @@
 ## SOTA framework for non-adversarial Imitation Learning
 
 IQ-Learn enables very fast, scalable and stable imitation learning.
-Our IQ-Learn algorithm is present in `iq.py`. This file can be used standalone to add **IQ** to your IL & RL projects. 
+Our IQ-Learn algorithm is present in `iq.py`. This file can be used standalone to add **IQ** to your IL & RL projects.
 
 IQ-Learn can be implemented on top of most existing RL methods (off-policy & on-policy) by changing the critic update loss to our proposed `iq_loss`. <br>
 (IQ has been successfully tested to work with Q-Learning, SAC, PPO, DDPG and Decision Transformer agents).
 
-### Update:
- 
- - Added IQ-Learn results on Humanoid-v2
- - Added support for DM Control environments
- - Released `expert_generation` script to generate your own experts from trained RL agents for new environments.
+### our contributions 
+- Benchmarked IQ-Learn against SOAR-IL on continuous control tasks (Pendulum-v1, CartPoleContinuous-v0) across varying demo sizes K=1,5,10,20,50
+- Added Pendulum-v1 sweep: SAC expert trained with Stable-Baselines3, demos collected at K=1,5,10,20,50
+- Added CartPoleContinuous-v0 sweep with the same K values
+- Added `envs/cartpole_continuous.py` implementing the CartPoleContinuous-v0 custom Gymnasium environment
+- Added `expert_train_sac.py` to train SAC experts via SB3 for new continuous environments
+- Added `expert_collect_sac.py` to roll out and save expert demos in the `.pkl` format IQ-Learn expects
+- Added `scripts/run_pendulum.sh` and `scripts/run_cartpole.sh` for parallel multi-GPU sweeps over demo sizes and seeds
+- Added `generate_progress_csv.py` to convert IQ-Learn stdout logs into the SOAR-IL `progress.csv` format for side-by-side comparison
+- Released `expert_generation` script to generate experts from trained RL agents for new environments
+- Updated `requirements.txt` to resolve dependency conflicts in the original repo
 
-## Requirement
+## Requirements
 
 - pytorch (>= 1.4)
-- gym
+- gym / gymnasium
+- stable-baselines3 (for SAC expert training)
 - wandb
 - tensorboardX
 - hydra-core=1.0 (>= 1.1 is incompatible currently)
 
 ## Installation
 
-- Make a conda environment and install dependencies: `pip install -r requirements.txt`
-- Setup wandb project to log and visualize metrics
-- (Optional) Download expert datasets for Atari environments from [GDrive](https://drive.google.com/file/d/1wKdMi10_X0oV4URdkv8JSCY0rRB8iBFq/view?usp=sharing)
-
-## Examples
-
-We show some examples that push the boundaries of imitation learning using IQ-Learn:
-
-### 1. CartPole-v1 using 1 demo subsampled 20 times with fully *offline* imitation  
-
-```
-python train_iq.py agent=softq method=iq env=cartpole expert.demos=1 expert.subsample_freq=20 agent.init_temp=0.001 method.chi=True method.loss=value_expert
+```bash
+pip install -r requirements.txt
 ```
 
-IQ-Learn is the only method thats reaches the expert env reward of **500** (requiring only 3k training steps and less than 30 secs!!)
 
-<img src="../docs/cartpole_example.png" width="500"> 
+## Workflow: from expert to IQ-Learn results
 
-### 2. Playing Pong at human performance
+### Step 1 — Train a SAC expert
 
-```
-python train_iq.py agent=softq env=pong agent.init_temp=1e-3 method.loss=value_expert method.chi=True seed=0 expert.demos=30
-```
+```bash
+# Pendulum-v1
+python expert_train_sac.py --env-name Pendulum-v1 --total-steps 100000
 
-Again, IQ-Learn is the only method thats reaches the expert env reward of **21** <br>
-(we find better hyperparams compared to the original paper)
-
-<img src="../docs/pong_example.png" width="500"> 
-
-
-
-### 3. Controlling a Humanoid with imitation of a single expert
-
-```
-python train_iq.py env=humanoid agent=sac expert.demos=1 method.loss=v0 method.regularize=True agent.actor_lr=3e-05 seed=0 agent.init_temp=1
+# CartPoleContinuous-v0
+python expert_train_sac.py --env-name CartPoleContinuous-v0 --total-steps 100000
 ```
 
-IQ-Learn learns to control a full humanoid at expert performance using a single demonstration reaching the expert env reward of **5300** <br>
+Saves a `.zip` policy to `trained_policies/`.
 
-<img src="../docs/humanoid_example.png" width="500"> 
+### Step 2 — Collect expert demonstrations
 
-## Instructions
-We show example code for training Q-Learning and SAC agents with **IQ-Learn** in `train_iq`.py. We make minimum modifications to original RL training code present in `train_rl`.py and simply change the critic loss function.
-<!-- Our training code is present in `train_iq.py` which implements **IQ-Learn** on top of DQN/SAC RL agents by simply changing the Q-function update rule. RL training code is in `train_rl.py`. <br> IQ-Learn simplify modifies the loss function for the critic network, compared to vanilla RL. -->
+```bash
+# Collect K=1,5,10,20,50 demos in one shot
+python expert_collect_sac.py --env-name Pendulum-v1 --K-list 1 5 10 20 50
+python expert_collect_sac.py --env-name CartPoleContinuous-v0 --K-list 1 5 10 20 50
+```
 
-- To reproduce our Offline IL experiments, see `scripts/run_offline.sh`
-- To reproduce our Mujoco experiments, see `scripts/run_mujoco.sh`
-- To reproduce Atari experiments, see `scripts/run_atari.sh`
-- To visualize our recovered state-only rewards on a toy Point Maze environment: 
-    `python -m vis.maze_vis env=pointmaze_right eval.policy=pointmaze agent.init_temp=1 agent=sac.q_net._target_=agent.sac_models.DoubleQCritic`. <br>
-    Reward visualizations are saved in `vis/outputs` directory
+Saves `.pkl` files to `experts/<env>_K<K>.pkl`. Each smaller K is a clean prefix of the larger one.
 
-## Contributions
+### Step 3 — Run IQ-Learn sweeps
 
-Contributions are very welcome. If you know how to make this code better, please open an issue. If you want to submit a pull request, please open an issue first. 
+```bash
+# Pendulum: 5 demo sizes × 3 seeds, distributed across available GPUs
+bash scripts/run_pendulum.sh
 
-## License
+# CartPoleContinuous: same sweep
+bash scripts/run_cartpole.sh
+```
 
-The code is made available for academic, non-commercial usage. Please see the [LICENSE](LICENSE.md) for the licensing terms of IQ-Learn for commercial use and running it on your robots/creating new AI agents.
+Logs land in `outputs/<env>_iq/demos_<K>_seed_<seed>_gpu_<gpu>.log`.
 
-For any inquiry, contact: Div Garg ([divgarg@stanford.edu](mailto:divgarg@stanford.edu?subject=[GitHub]%IQ-Learn))
+### Step 4 — Generate comparison CSVs
 
+```bash
+python generate_progress_csv.py pendulum
+python generate_progress_csv.py cartpole
+```
 
+Outputs `logs/<env>/exp-<K>/iq_learn/seed<seed>/progress.csv` in the same format as SOAR-IL, so both algorithms can be plotted with the same code.
+
+## Classic examples
+
+### CartPole-v1 — offline IL with 1 demo
+
+```bash
+python train_iq.py agent=softq method=iq env=cartpole \
+  expert.demos=1 expert.subsample_freq=20 \
+  agent.init_temp=0.001 method.chi=True method.loss=value_expert
+```
+
+<img src="../docs/cartpole_example.png" width="500">
