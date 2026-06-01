@@ -30,19 +30,18 @@ for DEMO in "${DEMOS[@]}"; do
 
     echo "Launching job $job_id | demos=$DEMO seed=$SEED gpu=$GPU exp=$EXP_NAME"
 
-    CUDA_VISIBLE_DEVICES=$GPU PYTHONUNBUFFERED=1 python -u train_iq.py \
+    CUDA_VISIBLE_DEVICES=$GPU PYTHONUNBUFFERED=1 HYDRA_FULL_ERROR=1 python -u train_iq.py \
         agent=sac \
         env=pendulum \
         env.demo=Pendulum-v1_K${DEMO} \
         expert.demos=$DEMO \
         env.learn_steps=2e5 env.eval_interval=5e3 \
-        method.loss=value method.regularize=True method.chi=False \
-        agent.actor_lr=3e-5 agent.init_temp=1e-2 agent.learn_temp=True \
+        method.regularize=true method.chi=true method.alpha=5.0 \
+        train.batch=256 train.use_target=true train.soft_update=true \
         eval.eps=20 \
         seed=$SEED \
         exp_name=$EXP_NAME \
-        hydra.run.dir=. \
-        hydra.output_subdir=null \    hydra.run.dir=. hydra.output_subdir=null\
+        hydra.run.dir=. hydra.output_subdir=null \
         > "$LOG_FILE" 2>&1 &
       
       

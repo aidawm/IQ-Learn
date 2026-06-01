@@ -1,22 +1,24 @@
 #!/bin/bash
-# Run all CartPole Continuous SAC + IQ experiments
-# Based on: python train_iq.py agent=sac env=cartpole_continuous
-#   method.chi=True method.loss=value_expert method.regularize=False
-#   agent.actor_lr=3e-4 agent.init_temp=1e-3
-#   hydra.run.dir=. hydra.output_subdir=null
+# Run all Pendulum SAC + IQ experiments
+# Based on: python train_iq.py agent=sac env=pendulum
+#   env.demo=Pendulum-v1_K{DEMO} expert.demos={DEMO}
+#   env.learn_steps=2e5 env.eval_interval=5e3
+#   method.loss=value method.regularize=True method.chi=False
+#   agent.actor_lr=3e-5 agent.init_temp=1e-2 agent.learn_temp=True
+#   eval.eps=20
 
 DEMOS=(1 5 10 20 50)
 SEEDS=(1 2 3)
 GPUS=(0 1 2 3 4 5 6 7)
+LOG_DIR="outputs/pendulum_iq"
 
-LOG_DIR="outputs/cartpole_iq"
 mkdir -p "$LOG_DIR"
 
 job_id=0
 pids=()
 
 echo "========================================"
-echo " CartPole Continuous IQ Experiment Runner"
+echo " Pendulum IQ Experiment Runner"
 echo " GPUs used: ${GPUS[*]}"
 echo " Total jobs: $((${#DEMOS[@]} * ${#SEEDS[@]}))"
 echo "========================================"
@@ -32,14 +34,18 @@ for DEMO in "${DEMOS[@]}"; do
 
     CUDA_VISIBLE_DEVICES=$GPU PYTHONUNBUFFERED=1 python -u train_iq.py \
       agent=sac \
-      env=cartpole_continuous \
-      env.demo=CartPoleContinuous-v0_K${DEMO} \
+      env=pendulum \
+      env.demo=Pendulum-v1_K${DEMO} \
       expert.demos=$DEMO \
-      method.chi=True \
-      method.loss=value_expert \
-      method.regularize=False \
-      agent.actor_lr=3e-4 \
-      agent.init_temp=1e-3 \
+      env.learn_steps=2e5 \
+      env.eval_interval=5e3 \
+      method.loss=value \
+      method.regularize=True \
+      method.chi=False \
+      agent.actor_lr=3e-5 \
+      agent.init_temp=1e-2 \
+      agent.learn_temp=True \
+      eval.eps=20 \
       seed=$SEED \
       exp_name=$EXP_NAME \
       hydra.run.dir=. \
